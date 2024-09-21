@@ -32,6 +32,7 @@ from service import app
 from service.common import status
 from service.models import db, init_db, Product
 from tests.factories import ProductFactory
+from unittest.mock import patch
 
 # Disable all but critical errors during normal test run
 # uncomment for debugging failing tests
@@ -200,6 +201,18 @@ class TestProductRoutes(TestCase):
         updated_product = response.get_json()
 
         self.assertEqual(updated_product["description"], "unknown")
+
+        with patch('service.models.Product.find') as mock_find:
+            mock_find.return_value = None
+            
+            # Make a PUT request to the update_products endpoint with a non-existent product_id
+            response = self.client.put("/products/123", json={"name": "Updated Product Name"})
+            
+            # Check that the response status code is 404
+            self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+            
+            # Optionally, check the response message
+            self.assertIn("Product with id '123' was not found.", response.get_data(as_text=True))
 
     def test_delete_product(self):
         """Test Deleting a Product"""
